@@ -6,7 +6,7 @@ fn main() -> anyhow::Result<()> {
     let now = Instant::now();
     let index_file =
         File::open(r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt")?;
-    let index = index::Index::load(&index_file);
+    let index = index::Index::load(index_file)?;
 
     println!(
         "Found {} pages in index after {:.2?}",
@@ -29,6 +29,19 @@ fn main() -> anyhow::Result<()> {
     println!(
         "Found article {} at {}/{}",
         article.page_name, article.offset, article.page_id
+    );
+
+    let now = Instant::now();
+    let exact = index
+        .find_exact("United Kingdom general election, 2005 (Bristol)")
+        .expect("Test article not found");
+
+    println!(
+        "Found exact article {} at {}/{} after {:.2?}",
+        exact.page_name,
+        exact.offset,
+        exact.page_id,
+        now.elapsed()
     );
 
     Ok(())
