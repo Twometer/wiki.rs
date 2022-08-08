@@ -1,4 +1,7 @@
-use std::{fs::File, time::Instant};
+use std::{fs::File, io, time::Instant};
+
+use bzip2_rs::DecoderReader;
+use memmap::MmapOptions;
 
 mod index;
 
@@ -43,6 +46,19 @@ fn main() -> anyhow::Result<()> {
         exact.page_id,
         now.elapsed()
     );
+
+    let now = Instant::now();
+    let articles_file =
+        File::open(r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream.xml.bz2")?;
+    let mmap = unsafe { MmapOptions::new().map(&articles_file)? };
+
+    let offset = exact.offset as usize;
+    let bzip_stream = &mmap[offset..];
+
+    let mut output = File::create("article.xml")?;
+    let mut reader = DecoderReader::new(bzip_stream);
+    io::copy(&mut reader, &mut output)?;
+    println!("Decoded article after {:.2?}", now.elapsed());
 
     Ok(())
 }
