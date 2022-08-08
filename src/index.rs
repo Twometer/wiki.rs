@@ -67,7 +67,7 @@ impl Index {
         results
     }
 
-    pub fn find_exact(&self, name: &str) -> Option<&IndexEntry> {
+    pub fn find_article_exact(&self, name: &str) -> Option<&IndexEntry> {
         self.entries
             .par_iter()
             .find_any(|entry| entry.page_name == name)

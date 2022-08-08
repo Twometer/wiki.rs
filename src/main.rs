@@ -1,8 +1,6 @@
-use std::{fs::File, io, time::Instant};
+use std::time::Instant;
 
-use bzip2_rs::DecoderReader;
-use memmap::MmapOptions;
-
+mod article;
 mod index;
 
 fn main() -> anyhow::Result<()> {
@@ -10,9 +8,12 @@ fn main() -> anyhow::Result<()> {
     let index = index::Index::from_file(
         r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt",
     )?;
+    let article_db = article::ArticleDatabase::from_file(
+        r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream.xml.bz2",
+    )?;
 
     println!(
-        "Found {} pages in index after {:.2?}",
+        "Loaded index with {} entries in {:.2?}",
         index.size(),
         now.elapsed()
     );
@@ -20,7 +21,7 @@ fn main() -> anyhow::Result<()> {
     let now = Instant::now();
     let search_results = index.find_article("Rust");
     println!(
-        "Got {} search results after {:.2?}",
+        "Search returned {} results in {:.2?}",
         search_results.len(),
         now.elapsed()
     );
@@ -36,11 +37,11 @@ fn main() -> anyhow::Result<()> {
 
     let now = Instant::now();
     let exact = index
-        .find_exact("United Kingdom general election, 2005 (Bristol)")
+        .find_article_exact("United Kingdom general election, 2005 (Bristol)")
         .expect("Test article not found");
 
     println!(
-        "Found exact article {} at {}/{} after {:.2?}",
+        "Found exact article {} at {}/{} in {:.2?}",
         exact.page_name,
         exact.offset,
         exact.page_id,
@@ -48,17 +49,10 @@ fn main() -> anyhow::Result<()> {
     );
 
     let now = Instant::now();
-    let articles_file =
-        File::open(r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream.xml.bz2")?;
-    let mmap = unsafe { MmapOptions::new().map(&articles_file)? };
+    let article_data = article_db.get_article(exact)?;
+    println!("Loaded article data from DB in {:.2?}", now.elapsed());
 
-    let offset = exact.offset as usize;
-    let bzip_stream = &mmap[offset..];
-
-    let mut output = File::create("article.xml")?;
-    let mut reader = DecoderReader::new(bzip_stream);
-    io::copy(&mut reader, &mut output)?;
-    println!("Decoded article after {:.2?}", now.elapsed());
+    dbg!(article_data);
 
     Ok(())
 }
