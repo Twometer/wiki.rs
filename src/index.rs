@@ -35,6 +35,11 @@ impl IndexEntry {
 }
 
 impl Index {
+    pub fn from_file(path: &str) -> anyhow::Result<Index> {
+        let file = File::open(path)?;
+        Self::load(file)
+    }
+
     pub fn load(mut file: File) -> anyhow::Result<Index> {
         let mut data = String::new();
         file.read_to_string(&mut data)?;

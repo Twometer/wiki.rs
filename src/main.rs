@@ -7,9 +7,9 @@ mod index;
 
 fn main() -> anyhow::Result<()> {
     let now = Instant::now();
-    let index_file =
-        File::open(r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt")?;
-    let index = index::Index::load(index_file)?;
+    let index = index::Index::from_file(
+        r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt",
+    )?;
 
     println!(
         "Found {} pages in index after {:.2?}",
