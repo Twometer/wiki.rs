@@ -5,6 +5,7 @@ use crate::render::render_article;
 mod article;
 mod index;
 mod render;
+mod template;
 
 fn main() -> anyhow::Result<()> {
     let now = Instant::now();

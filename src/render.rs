@@ -1,6 +1,22 @@
+use std::collections::HashMap;
+
 use parse_wiki_text::{Configuration, Node};
 
-use crate::article::Article;
+use crate::{article::Article, template::render_template};
+
+pub fn render_article(article: &Article) -> String {
+    let mut render_ctx = RenderContext::new();
+    render_ctx.render_article_body(article);
+
+    let template = include_str!("../res/article.html");
+    render_template(
+        template,
+        HashMap::from([
+            ("title", article.title.as_str()),
+            ("body", render_ctx.html.as_str()),
+        ]),
+    )
+}
 
 struct RenderContext {
     html: String,
@@ -8,12 +24,6 @@ struct RenderContext {
     is_bold: bool,
     is_bold_italic: bool,
     is_comment: bool,
-}
-
-pub fn render_article(article: &Article) -> String {
-    let mut ctx = RenderContext::new();
-    ctx.render_article(article);
-    ctx.html
 }
 
 impl RenderContext {
@@ -27,12 +37,10 @@ impl RenderContext {
         }
     }
 
-    fn render_article(&mut self, article: &Article) {
+    fn render_article_body(&mut self, article: &Article) {
         let root = Configuration::default().parse(article.body.as_str());
 
         self.html.clear();
-        self.html.push_str(&format!("<h1>{}</h1>", &article.title));
-
         self.render_nodes(&root.nodes);
     }
 
@@ -76,7 +84,12 @@ impl RenderContext {
                 }
                 self.is_comment = !self.is_comment;
             }
-            parse_wiki_text::Node::Category { .. } => {}
+            parse_wiki_text::Node::Category { target, .. } => {
+                self.html.push_str(&format!(
+                    r#"<a class="category" href="wiki://{}">{}</a>"#,
+                    target, target
+                ));
+            }
             parse_wiki_text::Node::CharacterEntity { character, .. } => {
                 self.html.push(*character);
             }
