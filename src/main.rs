@@ -1,7 +1,10 @@
-use std::time::Instant;
+use std::{fs::File, io::Write, time::Instant};
+
+use crate::render::render_article;
 
 mod article;
 mod index;
+mod render;
 
 fn main() -> anyhow::Result<()> {
     let now = Instant::now();
@@ -35,9 +38,11 @@ fn main() -> anyhow::Result<()> {
         article.page_name, article.offset, article.page_id
     );
 
+    // Test redirect article: United Kingdom general election, 2005 (Bristol)
+
     let now = Instant::now();
     let exact = index
-        .find_article_exact("United Kingdom general election, 2005 (Bristol)")
+        .find_article_exact("2005 United Kingdom general election in England")
         .expect("Test article not found");
 
     println!(
@@ -52,7 +57,9 @@ fn main() -> anyhow::Result<()> {
     let article_data = article_db.get_article(exact)?;
     println!("Loaded article data from DB in {:.2?}", now.elapsed());
 
-    dbg!(article_data);
+    let html = render_article(&article_data);
+    let mut file = File::create("work/test.html")?;
+    file.write_all(html.as_bytes())?;
 
     Ok(())
 }

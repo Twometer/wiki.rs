@@ -22,7 +22,9 @@ impl IndexEntry {
 
         let offset: u64 = parts.next().expect("Missing offset").parse()?;
         let page_id: u64 = parts.next().expect("Missing page ID").parse()?;
-        let page_name = parts.next().expect("Missing page name").to_owned();
+
+        let remaining: Vec<&str> = parts.collect();
+        let page_name = remaining.join(":").to_owned();
         let page_name_lowercase = page_name.to_lowercase();
 
         return Ok(Self {
