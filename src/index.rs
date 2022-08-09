@@ -17,13 +17,29 @@ pub struct IndexEntry {
 
 impl IndexEntry {
     fn parse(line: &str) -> anyhow::Result<Self> {
-        let mut parts = line.split(":");
+        let mut separators = [0usize; 2];
+        let mut index = 0;
 
-        let offset: u64 = parts.next().expect("Missing offset").parse()?;
-        let page_id: u64 = parts.next().expect("Missing page ID").parse()?;
+        for (i, c) in line.char_indices() {
+            if c == ':' {
+                separators[index] = i;
+                index += 1;
+            }
 
-        let remaining: Vec<&str> = parts.collect();
-        let page_name = remaining.join(":").to_owned();
+            if index >= 2 {
+                break;
+            }
+        }
+
+        let [sep0, sep1] = separators;
+
+        let offset = &line[0..sep0];
+        let page_id = &line[sep0 + 1..sep1];
+        let page_name = &line[sep1 + 1..];
+
+        let offset: u64 = offset.parse()?;
+        let page_id: u64 = page_id.parse()?;
+        let page_name = page_name.to_owned();
 
         return Ok(Self {
             offset,
