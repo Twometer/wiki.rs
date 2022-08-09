@@ -12,6 +12,7 @@
                 line-height: 1.6;
                 font-size: 18px;
                 color: #333;
+                text-align: justify;
             }
             @media screen and (min-width: 768px) {
                 body {
@@ -22,6 +23,34 @@
                 body {
                     max-width: 60%;
                 }
+            }
+            a {
+                color: #0645ad;
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            a.category {
+                display: block;
+                background-color: #f8f9fa;
+                border: 1px solid #a2a9b1;
+                margin: -1px 0 0 -1px;
+                padding: 0.25rem 0.5rem;
+            }
+            table {
+                border-collapse: collapse;
+            }
+            th {
+                background-color: #eaecf0;
+                text-align: center;
+            }
+            td {
+                background-color: #f8f9fa;
+                border: 1px solid #a2a9b1;
+            }
+            :is(th, td) {
+                padding: 0.125rem;
             }
         </style>
     </head>
