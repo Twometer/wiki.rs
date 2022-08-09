@@ -85,11 +85,25 @@ impl Index {
     pub fn find_article_exact(&self, name: &str) -> Option<&IndexEntry> {
         self.entries
             .par_iter()
-            .find_any(|entry| entry.page_name == name)
+            .find_any(|entry| Self::equals(&entry.page_name, name))
     }
 
     pub fn size(&self) -> usize {
         self.entries.len()
+    }
+
+    fn equals(name: &str, query: &str) -> bool {
+        if name.len() != query.len() {
+            return false;
+        }
+
+        for (left, right) in name.chars().zip(query.chars()) {
+            if !left.to_lowercase().eq(right.to_lowercase()) {
+                return false;
+            }
+        }
+
+        true
     }
 
     fn starts_with(name: &str, query: &str) -> bool {

@@ -1,7 +1,9 @@
 // #![windows_subsystem = "windows"]
 
-use std::time::Instant;
+use std::{borrow::Cow, collections::HashMap, time::Instant};
 
+use url::Url;
+use urlencoding::decode;
 use wry::{
     application::{
         event::{Event, StartCause, WindowEvent},
@@ -9,6 +11,7 @@ use wry::{
         menu::{MenuBar, MenuItemAttributes},
         window::WindowBuilder,
     },
+    http::ResponseBuilder,
     webview::WebViewBuilder,
 };
 
@@ -22,59 +25,12 @@ mod template;
 fn main() -> anyhow::Result<()> {
     println!("Starting up wiki.rs ...");
 
-    let now = Instant::now();
     let index = index::Index::from_file(
         r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt",
     )?;
     let article_db = article::ArticleDatabase::from_file(
         r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream.xml.bz2",
     )?;
-
-    println!(
-        "Loaded index with {} entries in {:.2?}",
-        index.size(),
-        now.elapsed()
-    );
-
-    let now = Instant::now();
-    let search_results = index.find_article("Rust");
-    println!(
-        "Search returned {} results in {:.2?}",
-        search_results.len(),
-        now.elapsed()
-    );
-
-    let article = search_results
-        .first()
-        .expect("No results found for test query");
-
-    println!(
-        "Found article {} at {}/{}",
-        article.page_name, article.offset, article.page_id
-    );
-
-    // Test redirect article: United Kingdom general election, 2005 (Bristol)
-
-    let now = Instant::now();
-    let exact = index
-        .find_article_exact("2005 United Kingdom general election in England")
-        .expect("Test article not found");
-
-    println!(
-        "Found exact article {} at {}/{} in {:.2?}",
-        exact.page_name,
-        exact.offset,
-        exact.page_id,
-        now.elapsed()
-    );
-
-    let now = Instant::now();
-    let article_data = article_db.get_article(exact)?;
-    println!("Loaded article data from DB in {:.2?}", now.elapsed());
-
-    let now = Instant::now();
-    let html = render_article(&article_data);
-    println!("Rendered article to HTML in {:.2?}", now.elapsed());
 
     let mut menu = MenuBar::new();
     menu.add_item(MenuItemAttributes::new("Test"));
@@ -85,7 +41,42 @@ fn main() -> anyhow::Result<()> {
         .with_menu(menu)
         .build(&event_loop)?;
 
-    let _web_view = WebViewBuilder::new(window)?.with_html(html)?.build()?;
+    let _web_view = WebViewBuilder::new(window)?
+        .with_custom_protocol("wiki".into(), move |request| {
+            println!("Handling request to {}", request.uri());
+
+            let url = Url::parse(request.uri()).unwrap();
+            let mut path = url.path_segments().unwrap();
+
+            let name = decode(path.nth(0).unwrap()).unwrap();
+
+            println!("Loading article {}", name);
+
+            let time = Instant::now();
+            let article = index.find_article_exact(&name);
+            if article.is_none() {
+                return ResponseBuilder::new()
+                    .mimetype("text/plain")
+                    .body("not found".to_string().into_bytes());
+            }
+
+            let article = article.unwrap();
+            println!("Located article in {:.2?}", time.elapsed());
+
+            let time = Instant::now();
+            let article_data = article_db.get_article(&article).unwrap();
+            println!("Extracted article in {:.2?}", time.elapsed());
+
+            let time = Instant::now();
+            let article_html = render_article(&article_data);
+            println!("Rendered article in {:.2?}", time.elapsed());
+
+            ResponseBuilder::new()
+                .mimetype("text/html")
+                .body(article_html.into_bytes())
+        })
+        .with_url("wiki://page/2005 United Kingdom general election in England")?
+        .build()?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
