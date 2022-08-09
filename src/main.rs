@@ -1,4 +1,6 @@
-use std::{fs::File, io::Write, time::Instant};
+// #![windows_subsystem = "windows"]
+
+use std::time::Instant;
 
 use wry::{
     application::{
@@ -18,6 +20,8 @@ mod render;
 mod template;
 
 fn main() -> anyhow::Result<()> {
+    println!("Starting up wiki.rs ...");
+
     let now = Instant::now();
     let index = index::Index::from_file(
         r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt",
@@ -70,12 +74,7 @@ fn main() -> anyhow::Result<()> {
 
     let now = Instant::now();
     let html = render_article(&article_data);
-    println!("Rendered in {:.2?}", now.elapsed());
-
-    //let mut file = File::create("work/test.html")?;
-    //file.write_all(html.as_bytes())?;
-
-    println!(">> Done");
+    println!("Rendered article to HTML in {:.2?}", now.elapsed());
 
     let mut menu = MenuBar::new();
     menu.add_item(MenuItemAttributes::new("Test"));
@@ -86,13 +85,13 @@ fn main() -> anyhow::Result<()> {
         .with_menu(menu)
         .build(&event_loop)?;
 
-    let web_view = WebViewBuilder::new(window)?.with_html(html)?.build()?;
+    let _web_view = WebViewBuilder::new(window)?.with_html(html)?.build()?;
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
 
         match event {
-            Event::NewEvents(StartCause::Init) => println!("Wry has started!"),
+            Event::NewEvents(StartCause::Init) => println!("Started wry window"),
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..

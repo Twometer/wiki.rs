@@ -2,7 +2,6 @@ use std::{fs::File, io::Read, str};
 
 use rayon::{
     prelude::{IntoParallelRefIterator, ParallelIterator},
-    slice::ParallelSliceMut,
     str::ParallelString,
 };
 
