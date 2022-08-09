@@ -2,6 +2,7 @@ use std::{fs::File, io::Read, str};
 
 use rayon::{
     prelude::{IntoParallelRefIterator, ParallelIterator},
+    slice::ParallelSliceMut,
     str::ParallelString,
 };
 
@@ -74,7 +75,7 @@ impl Index {
         let mut results = self
             .entries
             .iter()
-            .filter(|entry| entry.page_name.to_lowercase().starts_with(&query))
+            .filter(|entry| Self::starts_with(&entry.page_name, &query))
             .take(100)
             .collect::<Vec<&IndexEntry>>();
 
@@ -90,5 +91,20 @@ impl Index {
 
     pub fn size(&self) -> usize {
         self.entries.len()
+    }
+
+    fn starts_with(name: &str, query: &str) -> bool {
+        let mut name = name.chars();
+        for query_chr in query.chars() {
+            match name.next() {
+                Some(name_chr) => {
+                    if !name_chr.to_lowercase().eq(query_chr.to_lowercase()) {
+                        return false;
+                    }
+                }
+                None => return false,
+            }
+        }
+        true
     }
 }
