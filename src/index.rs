@@ -13,7 +13,6 @@ pub struct IndexEntry {
     pub offset: u64,
     pub page_id: u64,
     pub page_name: String,
-    page_name_lowercase: String,
 }
 
 impl IndexEntry {
@@ -25,13 +24,11 @@ impl IndexEntry {
 
         let remaining: Vec<&str> = parts.collect();
         let page_name = remaining.join(":").to_owned();
-        let page_name_lowercase = page_name.to_lowercase();
 
         return Ok(Self {
             offset,
             page_id,
             page_name,
-            page_name_lowercase,
         });
     }
 }
@@ -61,7 +58,7 @@ impl Index {
         let mut results = self
             .entries
             .iter()
-            .filter(|entry| entry.page_name_lowercase.starts_with(&query))
+            .filter(|entry| entry.page_name.to_lowercase().starts_with(&query))
             .take(100)
             .collect::<Vec<&IndexEntry>>();
 
