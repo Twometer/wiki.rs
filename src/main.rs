@@ -58,9 +58,13 @@ fn main() -> anyhow::Result<()> {
     let article_data = article_db.get_article(exact)?;
     println!("Loaded article data from DB in {:.2?}", now.elapsed());
 
+    let now = Instant::now();
     let html = render_article(&article_data);
+    println!("Rendered in {:.2?}", now.elapsed());
+
     let mut file = File::create("work/test.html")?;
     file.write_all(html.as_bytes())?;
 
+    println!(">> Done");
     Ok(())
 }

@@ -5,20 +5,20 @@ use parse_wiki_text::{Configuration, Node};
 use crate::{article::Article, template::render_template};
 
 pub fn render_article(article: &Article) -> String {
-    let mut render_ctx = RenderContext::new();
-    render_ctx.render_article_body(article);
+    let mut renderer = ArticleRenderer::new();
+    renderer.render_article_body(article);
 
     let template = include_str!("../res/article.html");
     render_template(
         template,
         HashMap::from([
             ("title", article.title.as_str()),
-            ("body", render_ctx.html.as_str()),
+            ("body", renderer.html.as_str()),
         ]),
     )
 }
 
-struct RenderContext {
+struct ArticleRenderer {
     html: String,
     is_italic: bool,
     is_bold: bool,
@@ -26,7 +26,7 @@ struct RenderContext {
     is_comment: bool,
 }
 
-impl RenderContext {
+impl ArticleRenderer {
     fn new() -> Self {
         Self {
             html: String::new(),
@@ -52,174 +52,205 @@ impl RenderContext {
 
     fn render_node(&mut self, node: &Node) {
         match node {
-            parse_wiki_text::Node::Bold { .. } => {
+            Node::Bold { .. } => {
                 if !self.is_bold {
-                    self.html.push_str("<strong>");
+                    self.open_tag("strong");
                 } else {
-                    self.html.push_str("</strong>");
+                    self.close_tag("strong");
                 }
                 self.is_bold = !self.is_bold;
             }
-            parse_wiki_text::Node::BoldItalic { .. } => {
+            Node::BoldItalic { .. } => {
                 if !self.is_bold_italic {
-                    self.html.push_str("<strong><em>");
+                    self.open_tag("strong");
+                    self.open_tag("em");
                 } else {
-                    self.html.push_str("</em></strong>");
+                    self.close_tag("em");
+                    self.close_tag("strong");
                 }
                 self.is_bold_italic = !self.is_bold_italic;
             }
-            parse_wiki_text::Node::Italic { .. } => {
+            Node::Italic { .. } => {
                 if !self.is_italic {
-                    self.html.push_str("<em>");
+                    self.open_tag("em");
                 } else {
-                    self.html.push_str("</em>");
+                    self.close_tag("em");
                 }
                 self.is_italic = !self.is_italic;
             }
-            parse_wiki_text::Node::Comment { .. } => {
+            Node::Comment { .. } => {
                 if !self.is_comment {
-                    self.html.push_str("<!--");
+                    self.append("<!--");
                 } else {
-                    self.html.push_str("-->");
+                    self.append("-->");
                 }
                 self.is_comment = !self.is_comment;
             }
-            parse_wiki_text::Node::Category { target, .. } => {
-                self.html.push_str(&format!(
+            Node::Category { target, .. } => {
+                self.append(&format!(
                     r#"<a class="category" href="wiki://{}">{}</a>"#,
                     target, target
                 ));
             }
-            parse_wiki_text::Node::CharacterEntity { character, .. } => {
-                self.html.push(*character);
+            Node::CharacterEntity { character, .. } => {
+                self.append_chr(*character);
             }
-            parse_wiki_text::Node::DefinitionList { items, .. } => {
-                self.html.push_str("<dl>");
+            Node::DefinitionList { items, .. } => {
+                self.open_tag("dl");
                 for itm in items {
                     self.render_nodes(&itm.nodes);
                 }
-                self.html.push_str("</dl>");
+                self.close_tag("dl");
             }
-            parse_wiki_text::Node::StartTag { name, .. } => {
-                self.html.push_str(&format!("<{}>", name));
+            Node::StartTag { name, .. } => {
+                self.open_tag(&name);
             }
-            parse_wiki_text::Node::EndTag { name, .. } => {
-                self.html.push_str(&format!("</{}>", name));
+            Node::EndTag { name, .. } => {
+                self.close_tag(&name);
             }
-            parse_wiki_text::Node::Heading { level, nodes, .. } => {
-                self.html.push_str(&format!("<h{}>", level));
+            Node::Heading { level, nodes, .. } => {
+                let tag_name = format!("h{}", level);
+
+                self.open_tag(&tag_name);
                 self.render_nodes(nodes);
-                self.html.push_str(&format!("</h{}>", level));
+                self.close_tag(&tag_name);
             }
-            parse_wiki_text::Node::HorizontalDivider { .. } => {
-                self.html.push_str("</hr>");
+            Node::HorizontalDivider { .. } => {
+                self.void_tag("hr");
             }
-            parse_wiki_text::Node::Image { target, text, .. } => {
-                self.html
-                    .push_str(&format!(r#"<figure><img src="{}"/><figcaption>"#, target));
+            Node::Image { target, text, .. } => {
+                self.open_tag("figure");
+                self.append(&format!(r#"<img src="{}"/>"#, target));
+
+                self.open_tag("figcaption");
                 self.render_nodes(text);
-                self.html.push_str("</figcaption></figure>");
+                self.close_tag("figcaption");
+                self.close_tag("figure");
             }
-            parse_wiki_text::Node::Link { target, text, .. } => {
-                self.html
-                    .push_str(&format!("<a href=\"wiki://{}\">", target));
+            Node::Link { target, text, .. } => {
+                self.append(&format!("<a href=\"wiki://{}\">", target));
                 self.render_nodes(text);
-                self.html.push_str("</a>");
+                self.append("</a>");
             }
-            parse_wiki_text::Node::Redirect { target, .. } => {
-                self.html
-                    .push_str(&format!("<a href=\"wiki://{}\">Redirect</a>", target));
+            Node::Redirect { target, .. } => {
+                self.append(&format!("<a href=\"wiki://{}\">Redirect</a>", target));
             }
-            parse_wiki_text::Node::ExternalLink { nodes, .. } => {
-                self.html.push_str("<a href=\"#\">");
+            Node::ExternalLink { nodes, .. } => {
+                self.append(r##"<a href="#">"##);
                 self.render_nodes(nodes);
-                self.html.push_str("</a>");
+                self.append("</a>");
             }
-            parse_wiki_text::Node::MagicWord { .. } => {}
-            parse_wiki_text::Node::ParagraphBreak { .. } => {
-                self.html.push_str("<p/>");
+            Node::ParagraphBreak { .. } => {
+                self.void_tag("p");
             }
-            parse_wiki_text::Node::Parameter { .. } => {
+            Node::MagicWord { .. } => {}
+            Node::Parameter { .. } => {
                 // TODO: Insert a parameter when inside of a template call
             }
-            parse_wiki_text::Node::Template { .. } => {
+            Node::Template { .. } => {
                 // TODO: Insert a template from the Template: namespace, or if the template
                 //       is {{#invoke:$name|$arg1|...}}, it's a Lua template from the Module: namespace
             }
-            parse_wiki_text::Node::Preformatted { nodes, .. } => {
-                self.html.push_str("<pre>");
+            Node::Preformatted { nodes, .. } => {
+                self.open_tag("pre");
                 self.render_nodes(nodes);
-                self.html.push_str("</pre>");
+                self.close_tag("pre");
             }
-            parse_wiki_text::Node::Table {
+            Node::Table {
                 attributes,
                 captions,
                 rows,
                 ..
             } => {
-                self.html.push_str("<table ");
+                self.append("<table ");
                 self.render_nodes(attributes);
-                self.html.push_str(">");
+                self.append(">");
 
-                self.html.push_str("<thead><tr>");
+                self.append("<thead><tr>");
                 for cap in captions {
-                    self.html.push_str("<th ");
+                    self.append("<th ");
                     if let Some(attributes) = cap.attributes.as_ref() {
                         self.render_nodes(attributes);
                     }
-                    self.html.push_str(">");
+                    self.append(">");
 
                     self.render_nodes(&cap.content);
-                    self.html.push_str("</th>");
+                    self.append("</th>");
                 }
-                self.html.push_str("</tr></thead>");
+                self.append("</tr></thead>");
 
-                self.html.push_str("<tbody>");
+                self.append("<tbody>");
                 for row in rows {
-                    self.html.push_str("<tr ");
+                    self.append("<tr ");
                     self.render_nodes(&row.attributes);
-                    self.html.push_str(">");
+                    self.append(">");
 
                     for cell in &row.cells {
-                        self.html.push_str("<td ");
+                        self.append("<td ");
                         if let Some(attributes) = cell.attributes.as_ref() {
                             self.render_nodes(attributes);
                         }
-                        self.html.push_str(">");
+                        self.append(">");
 
                         self.render_nodes(&cell.content);
-                        self.html.push_str("</td>");
+                        self.append("</td>");
                     }
-                    self.html.push_str("</tr>");
+                    self.append("</tr>");
                 }
-                self.html.push_str("</tbody></table>");
+                self.append("</tbody></table>");
             }
-            parse_wiki_text::Node::Tag { name, nodes, .. } => {
-                self.html.push_str(&format!("<{}>", name));
+            Node::Tag { name, nodes, .. } => {
+                self.open_tag(&name);
                 self.render_nodes(nodes);
-                self.html.push_str(&format!("</{}>", name));
+                self.close_tag(&name);
             }
-            parse_wiki_text::Node::Text { value, .. } => {
-                self.html.push_str(value);
+            Node::Text { value, .. } => {
+                self.append(value);
             }
-            parse_wiki_text::Node::OrderedList { items, .. } => {
-                self.html.push_str("<ol>");
+            Node::OrderedList { items, .. } => {
+                self.open_tag("ol");
                 for itm in items {
-                    self.html.push_str("<li>");
+                    self.open_tag("li");
                     self.render_nodes(&itm.nodes);
-                    self.html.push_str("</li>");
+                    self.close_tag("li");
                 }
-                self.html.push_str("</ol>");
+                self.close_tag("ol");
             }
-            parse_wiki_text::Node::UnorderedList { items, .. } => {
-                self.html.push_str("<ul>");
+            Node::UnorderedList { items, .. } => {
+                self.open_tag("ul");
                 for itm in items {
-                    self.html.push_str("<li>");
+                    self.open_tag("li");
                     self.render_nodes(&itm.nodes);
-                    self.html.push_str("</li>");
+                    self.close_tag("li");
                 }
-                self.html.push_str("</ul>");
+                self.close_tag("ul");
             }
         }
+    }
+
+    fn append(&mut self, data: &str) {
+        self.html.push_str(data);
+    }
+
+    fn append_chr(&mut self, data: char) {
+        self.html.push(data);
+    }
+
+    fn open_tag(&mut self, tag: &str) {
+        self.append_chr('<');
+        self.append(tag);
+        self.append_chr('>');
+    }
+
+    fn close_tag(&mut self, tag: &str) {
+        self.append("</");
+        self.append(tag);
+        self.append_chr('>');
+    }
+
+    fn void_tag(&mut self, tag: &str) {
+        self.append_chr('<');
+        self.append(tag);
+        self.append("/>");
     }
 }
