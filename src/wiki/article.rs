@@ -7,7 +7,7 @@ use memmap::{Mmap, MmapOptions};
 use minidom::Element;
 use thiserror::Error;
 
-use crate::index::IndexEntry;
+use super::index::IndexEntry;
 
 pub struct ArticleDatabase {
     data: Mmap,

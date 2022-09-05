@@ -2,15 +2,19 @@ use std::collections::HashMap;
 
 use parse_wiki_text::{Configuration, Node};
 
-use crate::{article::Article, template::render_template};
+use crate::{resource::ResourceManager, template::render_template, wiki::article::Article};
 
-pub fn render_article(article: &Article) -> String {
+pub fn render_article(resources: &ResourceManager, article: &Article) -> String {
     let mut renderer = ArticleRenderer::new();
     renderer.render_article_body(article);
 
-    let template = include_str!("../res/article.html");
+    let template = resources
+        .find_resource("article.html")
+        .expect("Missing article resource")
+        .to_string();
+
     render_template(
-        template,
+        template.as_str(),
         HashMap::from([
             ("title", article.title.as_str()),
             ("body", renderer.html.as_str()),
