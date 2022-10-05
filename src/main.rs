@@ -16,11 +16,11 @@ use wry::{
     webview::WebViewBuilder,
 };
 
-use crate::{render::render_article, resource::ResourceManager};
+use crate::{pages::render_article_page, resource::ResourceManager};
 
-mod render;
+mod pages;
+mod renderer;
 mod resource;
-mod template;
 mod wiki;
 
 #[derive(Debug)]
@@ -65,8 +65,8 @@ fn main() -> anyhow::Result<()> {
     )?;
 
     let mut resources = ResourceManager::new();
-    resources.register("article.html", include_bytes!("../res/article.html"));
-    resources.register("styles.css", include_bytes!("../res/styles.css"));
+    resources.register_template("article.html", include_bytes!("../res/article.html"));
+    resources.register_resource("styles.css", include_bytes!("../res/styles.css"));
 
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new()
@@ -98,7 +98,7 @@ fn main() -> anyhow::Result<()> {
                         println!("Extracted article in {:.2?}", time.elapsed());
 
                         let time = Instant::now();
-                        let article_html = render_article(&resources, &article_data);
+                        let article_html = render_article_page(&resources, &article_data);
                         println!("Rendered article in {:.2?}", time.elapsed());
 
                         ResponseBuilder::new()

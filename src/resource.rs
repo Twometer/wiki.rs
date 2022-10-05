@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use kata::Template;
 use wry::{
     http::{Response, ResponseBuilder},
     Error,
@@ -105,24 +106,39 @@ impl Into<Result<Response, Error>> for &ResourceFile {
 
 pub struct ResourceManager {
     resource_files: HashMap<String, ResourceFile>,
+    template_cache: HashMap<String, Template>,
 }
 
 impl ResourceManager {
     pub fn new() -> Self {
         Self {
             resource_files: HashMap::new(),
+            template_cache: HashMap::new(),
         }
     }
 
-    pub fn register(&mut self, name: &str, data: &[u8]) {
+    pub fn register_resource(&mut self, name: &str, data: &[u8]) {
         self.resource_files.insert(
             name.to_string(),
             ResourceFile::new(Self::infer_mime(name), data.to_owned()),
         );
     }
 
+    pub fn register_template(&mut self, name: &str, data: &[u8]) {
+        self.register_resource(name, data);
+        if let Some(res) = self.find_resource(name) {
+            let res_str = res.to_string();
+            let template = Template::compile(&res_str).expect("Failed to compile template");
+            self.template_cache.insert(name.to_owned(), template);
+        }
+    }
+
     pub fn find_resource(&self, name: &str) -> Option<&ResourceFile> {
         self.resource_files.get(name)
+    }
+
+    pub fn find_template(&self, name: &str) -> Option<&Template> {
+        self.template_cache.get(name)
     }
 
     fn infer_mime(name: &str) -> MimeType {

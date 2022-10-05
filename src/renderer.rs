@@ -1,28 +1,8 @@
-use std::collections::HashMap;
-
 use parse_wiki_text::{Configuration, Node};
 
-use crate::{resource::ResourceManager, template::render_template, wiki::article::Article};
+use crate::wiki::article::Article;
 
-pub fn render_article(resources: &ResourceManager, article: &Article) -> String {
-    let mut renderer = ArticleRenderer::new();
-    renderer.render_article_body(article);
-
-    let template = resources
-        .find_resource("article.html")
-        .expect("Missing article resource")
-        .to_string();
-
-    render_template(
-        template.as_str(),
-        HashMap::from([
-            ("title", article.title.as_str()),
-            ("body", renderer.html.as_str()),
-        ]),
-    )
-}
-
-struct ArticleRenderer {
+pub struct ArticleRenderer {
     html: String,
     is_italic: bool,
     is_bold: bool,
@@ -31,7 +11,7 @@ struct ArticleRenderer {
 }
 
 impl ArticleRenderer {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             html: String::new(),
             is_italic: false,
@@ -41,7 +21,11 @@ impl ArticleRenderer {
         }
     }
 
-    fn render_article_body(&mut self, article: &Article) {
+    pub fn html(&self) -> &String {
+        &self.html
+    }
+
+    pub fn render_article_body(&mut self, article: &Article) {
         let root = Configuration::default().parse(article.body.as_str());
 
         self.html.clear();
