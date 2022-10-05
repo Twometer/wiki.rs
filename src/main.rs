@@ -66,12 +66,12 @@ fn parse_url(url: &str) -> anyhow::Result<ParsedUrl> {
 fn main() -> anyhow::Result<()> {
     println!("Starting up wiki.rs ...");
 
-    let index = wiki::index::Index::from_file(
-        r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream-index.txt",
-    )?;
-    let article_db = wiki::article::ArticleDatabase::from_file(
-        r"X:\Backups\Wikipedia\enwiki-latest-pages-articles-multistream.xml.bz2",
-    )?;
+    dotenv::dotenv()?;
+    let index_path = std::env::var("WIKI_INDEX_FILE")?;
+    let articles_path = std::env::var("WIKI_ARTICLE_DB")?;
+
+    let index = wiki::index::Index::from_file(&index_path)?;
+    let article_db = wiki::article::ArticleDatabase::from_file(&articles_path)?;
 
     println!("Loaded {} articles from index", index.size());
 
