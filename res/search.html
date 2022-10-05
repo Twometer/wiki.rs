@@ -4,7 +4,7 @@
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{{ title }}</title>
+        <title>Search results for {{ query }}</title>
         <link rel="stylesheet" href="/res/styles.css" />
     </head>
     <body>
@@ -14,8 +14,12 @@
             </form>
         </nav>
         <main>
-            <h1>{{ title }}</h1>
-            <article>{{ body }}</article>
+            <h1>Search results for <i>{{ query }}</i></h1>
+            {{ foreach result in results }}
+            <div>
+                <a href="/article/{{ result }}">{{ result }}</article>
+            </div>
+            {{ end }}
         </main>
     </body>
 </html>

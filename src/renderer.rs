@@ -76,7 +76,7 @@ impl ArticleRenderer {
             }
             Node::Category { target, .. } => {
                 self.append(&format!(
-                    r#"<a class="category" href="/{}">{}</a>"#,
+                    r#"<a class="category" href="/article/{}">{}</a>"#,
                     target, target
                 ));
             }
@@ -116,12 +116,12 @@ impl ArticleRenderer {
                 self.close_tag("figure");
             }
             Node::Link { target, text, .. } => {
-                self.append(&format!("<a href=\"/{}\">", target));
+                self.append(&format!("<a href=\"/article/{}\">", target));
                 self.render_nodes(text);
                 self.append("</a>");
             }
             Node::Redirect { target, .. } => {
-                self.append(&format!("<a href=\"/{}\">Redirect</a>", target));
+                self.append(&format!("<a href=\"/article/{}\">Redirect</a>", target));
             }
             Node::ExternalLink { nodes, .. } => {
                 self.append(r##"<a href="#">"##);
