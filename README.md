@@ -13,6 +13,10 @@ into the program.
 wiki.rs uses the _multistream_ format, which consists of a compressed archive of articles, and a separate index file. It can index the whole database in a few seconds,
 and accesses and searches articles in a few tens to hundreds of milliseconds. 
 
+Articles are rendered to HTML and displayed using the _wry_ framework.
+
+Currently, templates and Lua scripts within articles are not supported.
+
 ## Usage
 
 You need to first download a multistream dump and extract it. Then, set the follwing environment variables:
